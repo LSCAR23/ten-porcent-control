@@ -6,7 +6,6 @@ export async function POST(req) {
     try {
         const body = await req.json();
         const { name, password } = body;
-        console.log(body);
         if (!name || !password) {
             return new Response(JSON.stringify({ error: 'Nombre y contraseña son obligatorios' }), { status: 400 });
         }

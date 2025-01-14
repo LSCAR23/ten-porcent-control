@@ -6,7 +6,6 @@ export async function POST(req) {
     try {
         const body = await req.json();
         const { name, startDate, endDate } = body;
-        console.log(body);
         // Verificar si la quincena ya existe
         const existingFortnigh = await prisma.fortnigh.findUnique({
             where: { name },
@@ -18,16 +17,13 @@ export async function POST(req) {
 
         const days = [];
         for (let date = new Date(startDate); date <= new Date(endDate); date.setDate(date.getDate() + 1)) {
-            console.log(date);
             const day = await prisma.day.create({
                 data: {
                     date: new Date(date)
                 },
             });
-            console.log(day);
             days.push({ id: day.id });
         }
-        console.log(days);
         const fortnigh = await prisma.fortnigh.create({
             data: {
                 name,
