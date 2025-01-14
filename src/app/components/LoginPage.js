@@ -28,15 +28,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto', textAlign: 'center' }}>
-      <h1>Iniciar Sesión</h1>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <div className="max-w-md mx-auto p-6 bg-black rounded-lg border-violet-500 shadow-md shadow-violet-500 text-white">
+      <h1 className="text-3xl font-bold text-center mb-6">Iniciar Sesión</h1>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nombre"
           required
+          className="p-2 w-full bg-gray-700 border border-gray-600 rounded-md text-white"
         />
         <input
           type="password"
@@ -44,10 +45,16 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Contraseña"
           required
+          className="p-2 w-full bg-gray-700 border border-gray-600 rounded-md text-white"
         />
-        <button type="submit">Iniciar Sesión</button>
+        <button
+          type="submit"
+          className="w-full bg-violet-500 text-white py-2 rounded-md hover:bg-violet-600 transition duration-300"
+        >
+          Iniciar Sesión
+        </button>
       </form>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p className="text-red-500 mt-4">{error}</p>}
     </div>
   );
 }

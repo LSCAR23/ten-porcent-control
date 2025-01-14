@@ -39,3 +39,8 @@ export const getDayAttendance = async (dayId, userName) => {
     const response = await api.get(`/days/${dayId}/attendance?user=${encodeURIComponent(userName)}`);
     return response.data;
   };
+
+  export const getDayAttendanceList = async (dayId) => {
+    const response = await api.get(`/days/${dayId}/attendance`);
+    return response.data;
+  };

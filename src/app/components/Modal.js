@@ -9,11 +9,11 @@ export default function Modal({ children, onClose }) {
       role="dialog"
       aria-modal="true"
     >
-      <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full">
+      <div className="relative shadow-lg shadow-violet-500 bg-black rounded-lg max-w-lg w-full">
         {/* Botón para cerrar */}
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 transition"
+          className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 transition duration-300"
         >
           <span className="sr-only">Cerrar</span>
           ✖

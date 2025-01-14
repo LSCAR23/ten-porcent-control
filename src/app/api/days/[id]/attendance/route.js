@@ -42,7 +42,7 @@ export async function PATCH(req, context) {
 export async function GET(req, context) {
   try {
     const { id } = await context.params;
-    const userName = new URL(req.url).searchParams.get('user');
+    const userName = new URL(req.url).searchParams.get('user'); // Buscar el parámetro `user`
 
     const day = await prisma.day.findUnique({
       where: { id: parseInt(id, 10) },
@@ -53,10 +53,22 @@ export async function GET(req, context) {
       return new Response(JSON.stringify({ error: 'Día no encontrado' }), { status: 404 });
     }
 
-    const breakfast = day.breakfast.some((user) => user.name === userName);
-    const dinner = day.dinner.some((user) => user.name === userName);
+    if (userName) {
+      // Verificar si el usuario está en las listas
+      const breakfast = day.breakfast.some((user) => user.name === userName);
+      const dinner = day.dinner.some((user) => user.name === userName);
 
-    return new Response(JSON.stringify({ breakfast, dinner }), { status: 200 });
+      return new Response(JSON.stringify({ breakfast, dinner }), { status: 200 });
+    } else {
+      // Devolver las listas completas si no se especifica `user`
+      return new Response(
+        JSON.stringify({
+          breakfast: day.breakfast.map((user) => ({ name: user.name })),
+          dinner: day.dinner.map((user) => ({ name: user.name })),
+        }),
+        { status: 200 }
+      );
+    }
   } catch (error) {
     console.error('Error al obtener asistencia:', error);
     return new Response(
@@ -65,6 +77,7 @@ export async function GET(req, context) {
     );
   }
 }
+
 
 /*console.error('Error en el inicio de sesión:', error instanceof Error ? error.message : error);
     return NextResponse.json(

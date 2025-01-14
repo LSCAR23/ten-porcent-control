@@ -2,57 +2,69 @@
 
 import { useState, useEffect } from 'react';
 import Modal from '../components/Modal';
+import Spinner from '../components/Spinner';
+import ToastMessage from '../components/ToastMessage';
 import { getLastFortnigh, getDayAttendance, updateDayAttendance } from '@/services/fortNightService';
 import Cookies from 'js-cookie';
-
+import { useRouter } from 'next/navigation';
 export default function SaloneroPage() {
+  const router = useRouter();
   const [days, setDays] = useState([]);
   const [selectedDay, setSelectedDay] = useState(null);
   const [attendance, setAttendance] = useState({ breakfast: false, dinner: false });
   const [userName, setUserName] = useState('');
-  const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
+  const [loadingDays, setLoadingDays] = useState(false); // Estado para cargar días
+  const [loadingModal, setLoadingModal] = useState(false); // Estado para cargar listas del modal
+  const [savingAttendance, setSavingAttendance] = useState(false); // Estado para guardar asistencia
+  const [toast, setToast] = useState(null); // Estado para mensajes de Toast
 
   useEffect(() => {
     const cookieValue = Cookies.get('userName');
     if (!cookieValue) {
-      window.location.href = '/'; // Redirige al login si no hay cookie
+      router.push('/'); // Redirige al login si no hay cookie
     } else {
       setUserName(cookieValue);
     }
 
     const fetchLastFortnigh = async () => {
       try {
+        setLoadingDays(true);
         const fortnigh = await getLastFortnigh();
         setDays(fortnigh.days || []);
       } catch (err) {
-        console.error('Error al cargar los días de la última quincena:', err);
+        showToast('Error al cargar los días de la última quincena', 'error');
+      } finally {
+        setLoadingDays(false);
       }
     };
 
     fetchLastFortnigh();
   }, []);
 
+  const showToast = (message, type) => {
+    setToast({ message, type });
+  };
+
   const handleDayClick = async (day) => {
     setSelectedDay(day);
+    setLoadingModal(true);
 
     try {
-      // Obtener la asistencia actual del usuario para este día
       const attendanceData = await getDayAttendance(day.id, userName);
       setAttendance({
         breakfast: attendanceData.breakfast || false,
         dinner: attendanceData.dinner || false,
       });
     } catch (err) {
-      console.error('Error al obtener asistencia:', err);
-      setAttendance({ breakfast: false, dinner: false });
+      showToast('Error al obtener asistencia', 'error');
+    } finally {
+      setLoadingModal(false);
     }
   };
 
   const closeModal = () => {
     setSelectedDay(null);
-    setSuccess('');
-    setError('');
+    setAttendance({ breakfast: false, dinner: false });
   };
 
   const handleAttendanceChange = (e) => {
@@ -63,18 +75,20 @@ export default function SaloneroPage() {
   const saveAttendance = async () => {
     if (!selectedDay) return;
 
+    setSavingAttendance(true); // Mostrar Spinner al guardar
+
     try {
       await updateDayAttendance(selectedDay.id, {
         userName,
-        breakfast: attendance.breakfast, // Valor booleano
-        dinner: attendance.dinner, // Valor booleano
+        breakfast: attendance.breakfast,
+        dinner: attendance.dinner,
       });
-
-      setSuccess('Asistencia actualizada exitosamente.');
+      showToast('Asistencia actualizada exitosamente', 'success');
       closeModal();
     } catch (err) {
-      console.error('Error al guardar asistencia:', err);
-      setError('Hubo un error al guardar la asistencia.');
+      showToast('Error al guardar asistencia', 'error');
+    } finally {
+      setSavingAttendance(false); // Ocultar Spinner al finalizar
     }
   };
 
@@ -85,7 +99,9 @@ export default function SaloneroPage() {
     >
       <h1 className="text-3xl font-bold mb-6 text-center text-white">Bienvenido {userName}</h1>
 
-      {days.length === 0 ? (
+      {loadingDays ? (
+        <Spinner label="Cargando días..." />
+      ) : days.length === 0 ? (
         <p className="text-center text-white">No hay días disponibles.</p>
       ) : (
         <ul className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -105,52 +121,60 @@ export default function SaloneroPage() {
 
       {selectedDay && (
         <Modal onClose={closeModal}>
-          <div className="p-6 bg-black rounded-lg shadow-lg w-full max-w-4xl overflow-auto max-h-[80vh]">
-            <h2 className="text-2xl font-bold mb-2 text-white">
-              Día: {new Date(selectedDay.date).toLocaleDateString()}
-            </h2>
-            <form>
-              <div className="mb-4">
-                <label className="flex items-center text-white">
-                  <input
-                    type="checkbox"
-                    name="breakfast"
-                    checked={attendance.breakfast}
-                    onChange={handleAttendanceChange}
-                    className="mr-2"
-                  />
-                  Desayuno
-                </label>
-              </div>
-              <div className="mb-4">
-                <label className="flex items-center text-white">
-                  <input
-                    type="checkbox"
-                    name="dinner"
-                    checked={attendance.dinner}
-                    onChange={handleAttendanceChange}
-                    className="mr-2"
-                  />
-                  Cena
-                </label>
-              </div>
-            </form>
-            <button
-              onClick={saveAttendance}
-              className="px-4 py-2 bg-violet-500 text-white rounded-md hover:bg-violet-600 transition duration-300"
-            >
-              Guardar
-            </button>
-            {success && <p className="text-green-500 mt-4">{success}</p>}
-            {error && <p className="text-red-500 mt-4">{error}</p>}
-            <button
-              onClick={closeModal}
-              className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 transition duration-300 mt-4"
-            >
-              Cerrar
-            </button>
-          </div>
+          {loadingModal ? (
+            <Spinner label="Cargando asistencia..." />
+          ) : (
+            <div className="p-6 bg-black rounded-lg shadow-lg w-full max-w-4xl overflow-auto max-h-[80vh]">
+              <h2 className="text-2xl font-bold mb-2 text-white">
+                Día: {new Date(selectedDay.date).toLocaleDateString()}
+              </h2>
+              <form>
+                <div className="mb-4">
+                  <label className="flex items-center text-white">
+                    <input
+                      type="checkbox"
+                      name="breakfast"
+                      checked={attendance.breakfast}
+                      onChange={handleAttendanceChange}
+                      className="mr-2"
+                    />
+                    Desayuno
+                  </label>
+                </div>
+                <div className="mb-4">
+                  <label className="flex items-center text-white">
+                    <input
+                      type="checkbox"
+                      name="dinner"
+                      checked={attendance.dinner}
+                      onChange={handleAttendanceChange}
+                      className="mr-2"
+                    />
+                    Cena
+                  </label>
+                </div>
+              </form>
+              {savingAttendance ? (
+                <Spinner label="Guardando asistencia..." />
+              ) : (
+                <button
+                  onClick={saveAttendance}
+                  className="px-4 py-2 bg-violet-500 text-white rounded-md hover:bg-violet-600 transition duration-300"
+                >
+                  Guardar
+                </button>
+              )}
+            </div>
+          )}
         </Modal>
+      )}
+
+      {toast && (
+        <ToastMessage
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );

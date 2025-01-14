@@ -44,3 +44,30 @@ export async function POST(req) {
     );
   }
 }
+
+export async function GET() {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        userType: true,
+        breakfastDays: {
+          select: { id: true },
+        },
+        dinnerDays: {
+          select: { id: true },
+        },
+      },
+    });
+
+    // Retorna la lista de usuarios
+    return new Response(JSON.stringify(users), { status: 200 });
+  } catch (error) {
+    console.error('Error al obtener la lista de usuarios:', error);
+    return new Response(
+      JSON.stringify({ error: 'Error al obtener la lista de usuarios' }),
+      { status: 500 }
+    );
+  }
+}
