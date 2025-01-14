@@ -19,7 +19,17 @@ export default function AdminPage() {
   const [loadingLists, setLoadingLists] = useState(false);
 
   const [toast, setToast] = useState(null); // Estado para mensajes de Toast
-
+  const fetchLastFortnigh = async () => {
+    try {
+      setLoadingDays(true);
+      const fortnigh = await getLastFortnigh();
+      setDays(fortnigh.days || []);
+    } catch (err) {
+      showToast('Error al cargar los días de la última quincena', 'error');
+    } finally {
+      setLoadingDays(false);
+    }
+  };
   useEffect(() => {
     const cookieValue = Cookies.get('userName');
 
@@ -28,18 +38,6 @@ export default function AdminPage() {
     } else {
       setUserName(cookieValue);
     }
-
-    const fetchLastFortnigh = async () => {
-      try {
-        setLoadingDays(true);
-        const fortnigh = await getLastFortnigh();
-        setDays(fortnigh.days || []);
-      } catch (err) {
-        showToast('Error al cargar los días de la última quincena', 'error');
-      } finally {
-        setLoadingDays(false);
-      }
-    };
 
     fetchLastFortnigh();
   }, [router]);
@@ -79,6 +77,7 @@ export default function AdminPage() {
       }
 
       await createFortnigh({ name: quincenaName, startDate, endDate });
+      fetchLastFortnigh();
       showToast('Nueva quincena iniciada exitosamente', 'success');
     } catch (err) {
       showToast('Error al iniciar la quincena', 'error');
@@ -91,8 +90,11 @@ export default function AdminPage() {
 
     try {
       const attendanceData = await getDayAttendanceList(day.id);
-      setBreakfastList(attendanceData.breakfast || []);
-      setDinnerList(attendanceData.dinner || []);
+      const breakfast = attendanceData.filter((shift) => shift.turn === 'BREAKFAST');
+      const dinner = attendanceData.filter((shift) => shift.turn === 'DINNER');
+      
+      setBreakfastList(breakfast);
+      setDinnerList(dinner);
     } catch (err) {
       showToast('Error al obtener las listas de asistencia', 'error');
     } finally {
@@ -151,9 +153,13 @@ export default function AdminPage() {
               <div className="mb-6">
                 <h3 className="text-xl font-bold text-white">Desayuno</h3>
                 {breakfastList.length > 0 ? (
-                  <ul className="text-gray-300 list-disc list-inside">
-                    {breakfastList.map((user, index) => (
-                      <li key={index}>{user.name}</li>
+                  <ul className="text-gray-300 list-none space-y-2">
+                    {breakfastList.map((item, index) => (
+                      <li key={index}>
+                        {item.user} entrada: {new Date(item.startTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        {" "}salida: {new Date(item.endTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        {" "}Total de horas: {item.totalHours}
+                      </li>
                     ))}
                   </ul>
                 ) : (
@@ -163,9 +169,13 @@ export default function AdminPage() {
               <div className="mb-6">
                 <h3 className="text-xl font-bold text-white">Cena</h3>
                 {dinnerList.length > 0 ? (
-                  <ul className="text-gray-300 list-disc list-inside">
-                    {dinnerList.map((user, index) => (
-                      <li key={index}>{user.name}</li>
+                  <ul className="text-gray-300 list-none space-y-2">
+                    {dinnerList.map((item, index) => (
+                      <li key={index}>
+                        {item.user} entrada: {new Date(item.startTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        {" "}salida: {new Date(item.endTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        {" "}Total de horas: {item.totalHours}
+                      </li>
                     ))}
                   </ul>
                 ) : (
