@@ -20,3 +20,16 @@ export const getTotalHoursWorked = async (userName, fortnighId) => {
     throw new Error('Error de red o servidor');
   }
 };
+
+
+export const getHoursReport = async (fortnighId) => {
+  try {
+    const response = await api.get(`/shifts/total-hours?fortnighId=${fortnighId}`);
+    return response.data.report || [];
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.error || 'Error al obtener el reporte de horas');
+    }
+    throw new Error('Error de red o servidor');
+  }
+};

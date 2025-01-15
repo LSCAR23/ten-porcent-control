@@ -29,8 +29,11 @@ export async function PATCH(req, context) {
     const parseTimeToDate = (time) => {
       const [hours, minutes] = time.split(':').map(Number);
       if (isNaN(hours) || isNaN(minutes)) return null;
-      const date = new Date();
-      date.setHours(hours, minutes, 0, 0);
+    
+      // Configurar un día fijo (1970-01-01)
+      const date = new Date('1970-01-01T00:00:00');
+      date.setUTCHours(hours, minutes, 0, 0); // Establecer explícitamente la hora y los minutos
+    
       return date;
     };
 
@@ -176,7 +179,6 @@ export async function GET(req, context) {
         endTime: shift.endTime?.toISOString() || null,
         totalHours: shift.totalHours || 0,
       }));
-
       return new Response(
         JSON.stringify({ shifts }),
         { status: 200 }

@@ -7,7 +7,7 @@ import Modal from '../components/Modal';
 import Spinner from '../components/Spinner';
 import ToastMessage from '../components/ToastMessage';
 import { createFortnigh, checkFortnighExists, getLastFortnigh, getDayAttendanceList } from '@/services/fortNightService';
-
+import { getHoursReport } from '@/services/shiftService';
 export default function AdminPage() {
   const router = useRouter();
   const [userName, setUserName] = useState('');
@@ -17,12 +17,39 @@ export default function AdminPage() {
   const [dinnerList, setDinnerList] = useState([]);
   const [loadingDays, setLoadingDays] = useState(false);
   const [loadingLists, setLoadingLists] = useState(false);
-
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportData, setReportData] = useState([]);
+  const [loadingReport, setLoadingReport] = useState(false);
+  const [fortnighId, setFortnighId] = useState(null);
   const [toast, setToast] = useState(null); // Estado para mensajes de Toast
+
+  const fetchReport = async () => {
+    try {
+      setLoadingReport(true);
+      const report = await getHoursReport(fortnighId);
+      setReportData(report);
+    } catch (error) {
+      showToast('Error al obtener el reporte de horas', 'error');
+    } finally {
+      setLoadingReport(false);
+    }
+  };
+
+  const handleReportClick = async () => {
+    setShowReportModal(true);
+    await fetchReport();
+  };
+
+  const closeReportModal = () => {
+    setShowReportModal(false);
+    setReportData([]);
+  };
+
   const fetchLastFortnigh = async () => {
     try {
       setLoadingDays(true);
       const fortnigh = await getLastFortnigh();
+      setFortnighId(fortnigh.id);
       setDays(fortnigh.days || []);
     } catch (err) {
       showToast('Error al cargar los días de la última quincena', 'error');
@@ -92,7 +119,7 @@ export default function AdminPage() {
       const attendanceData = await getDayAttendanceList(day.id);
       const breakfast = attendanceData.filter((shift) => shift.turn === 'BREAKFAST');
       const dinner = attendanceData.filter((shift) => shift.turn === 'DINNER');
-      
+
       setBreakfastList(breakfast);
       setDinnerList(dinner);
     } catch (err) {
@@ -117,6 +144,43 @@ export default function AdminPage() {
       >
         Iniciar Nueva Quincena
       </button>
+      <button
+        onClick={handleReportClick}
+        className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition duration-300 mt-4"
+        disabled={!fortnighId}
+      >
+        Reporte de Horas
+      </button>
+
+      {/* Modal de Reporte */}
+      {showReportModal && (
+        <Modal onClose={closeReportModal}>
+          {loadingReport ? (
+            <Spinner label="Cargando reporte de horas..." />
+          ) : (
+            <div className="p-6 bg-black rounded-lg shadow-lg w-full max-w-4xl overflow-auto max-h-[80vh]">
+              <h2 className="text-2xl font-bold mb-4 text-white">Reporte de Horas</h2>
+              {reportData.length > 0 ? (
+                <ul className="text-gray-300 list-none space-y-2">
+                  {reportData.map((item, index) => (
+                    <li key={index}>
+                      {item.user}: {item.totalHours.toFixed(2)} horas
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500">No hay datos disponibles para el reporte.</p>
+              )}
+              <button
+                onClick={closeReportModal}
+                className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 transition duration-300 mt-4"
+              >
+                Cerrar
+              </button>
+            </div>
+          )}
+        </Modal>
+      )}
 
       <div className="mt-10">
         <h2 className="text-2xl font-bold">Días de la última quincena</h2>
@@ -156,8 +220,12 @@ export default function AdminPage() {
                   <ul className="text-gray-300 list-none space-y-2">
                     {breakfastList.map((item, index) => (
                       <li key={index}>
-                        {item.user} entrada: {new Date(item.startTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                        {" "}salida: {new Date(item.endTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        {item.user} entrada: {
+                          `${new Date(item.startTime).getUTCHours().toString().padStart(2, '0')}:${new Date(item.startTime).getUTCMinutes().toString().padStart(2, '0')}`
+                        }
+                        {" "}salida: {
+                          `${new Date(item.endTime).getUTCHours().toString().padStart(2, '0')}:${new Date(item.endTime).getUTCMinutes().toString().padStart(2, '0')}`
+                        }
                         {" "}Total de horas: {item.totalHours}
                       </li>
                     ))}
@@ -172,8 +240,13 @@ export default function AdminPage() {
                   <ul className="text-gray-300 list-none space-y-2">
                     {dinnerList.map((item, index) => (
                       <li key={index}>
-                        {item.user} entrada: {new Date(item.startTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                        {" "}salida: {new Date(item.endTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        {item.user} entrada: {
+                          `${new Date(item.startTime).getUTCHours().toString().padStart(2, '0')}:${new Date(item.startTime).getUTCMinutes().toString().padStart(2, '0')}`
+                        }{" "}
+                        salida: {
+                          `${new Date(item.endTime).getUTCHours().toString().padStart(2, '0')}:${new Date(item.endTime).getUTCMinutes().toString().padStart(2, '0')}`
+                        }
+
                         {" "}Total de horas: {item.totalHours}
                       </li>
                     ))}

@@ -67,41 +67,40 @@ export default function SaloneroPage() {
     setToast({ message, type });
   };
 
- const handleDayClick = async (day) => {
-  setSelectedDay(day);
-  setLoadingModal(true);
-
-  try {
-    const attendanceData = await getDayAttendance(day.id, userName); // Llama al servicio
-
-    setAttendance({
-      breakfast: attendanceData.breakfast || false,
-      breakfastStart: attendanceData.breakfastStart
-        ? new Date(attendanceData.breakfastStart).toLocaleTimeString('en-US', { hour12: false }).slice(0, 5) // Convertir a formato HH:mm
-        : '',
-      breakfastEnd: attendanceData.breakfastEnd
-        ? new Date(attendanceData.breakfastEnd).toLocaleTimeString('en-US', { hour12: false }).slice(0, 5)
-        : '',
-      dinner: attendanceData.dinner || false,
-      dinnerStart: attendanceData.dinnerStart
-        ? new Date(attendanceData.dinnerStart).toLocaleTimeString('en-US', { hour12: false }).slice(0, 5)
-        : '',
-      dinnerEnd: attendanceData.dinnerEnd
-        ? new Date(attendanceData.dinnerEnd).toLocaleTimeString('en-US', { hour12: false }).slice(0, 5)
-        : '',
-    });
-
-    // Calcular horas trabajadas directamente con los datos obtenidos
-    setHoursWorked({
-      breakfast: attendanceData.breakfastHours || 0,
-      dinner: attendanceData.dinnerHours || 0,
-    });
-  } catch (err) {
-    showToast('Error al obtener asistencia', 'error');
-  } finally {
-    setLoadingModal(false);
-  }
-};
+  const handleDayClick = async (day) => {
+    setSelectedDay(day);
+    setLoadingModal(true);
+  
+    try {
+      const attendanceData = await getDayAttendance(day.id, userName); // Llama al servicio
+  
+      const formatTime = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toISOString().slice(11, 16); // Extrae la hora en formato HH:mm
+      };
+  
+      setAttendance({
+        breakfast: attendanceData.breakfast || false,
+        breakfastStart: formatTime(attendanceData.breakfastStart),
+        breakfastEnd: formatTime(attendanceData.breakfastEnd),
+        dinner: attendanceData.dinner || false,
+        dinnerStart: formatTime(attendanceData.dinnerStart),
+        dinnerEnd: formatTime(attendanceData.dinnerEnd),
+      });
+  
+      // Calcular horas trabajadas directamente con los datos obtenidos
+      setHoursWorked({
+        breakfast: attendanceData.breakfastHours || 0,
+        dinner: attendanceData.dinnerHours || 0,
+      });
+    } catch (err) {
+      showToast('Error al obtener asistencia', 'error');
+    } finally {
+      setLoadingModal(false);
+    }
+  };
+  
 
   
 
@@ -159,6 +158,7 @@ export default function SaloneroPage() {
       showToast('Por favor, completa todos los campos de horas antes de guardar.', 'error');
       return;
     }
+
   
     setSavingAttendance(true);
   
