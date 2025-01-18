@@ -17,6 +17,30 @@ export const createFortnigh = async ({ name, startDate, endDate }) => {
   }
 };
 
+export const getAllFortnights = async () => {
+  try {
+    const response = await api.get('/fortnighs/all'); // Endpoint para obtener todas las quincenas
+    return response.data; // Suponiendo que el backend devuelve un arreglo de quincenas
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.error || 'Error al obtener las quincenas');
+    }
+    throw new Error('Error de red o servidor');
+  }
+};
+
+export const getDaysByFortnightId = async (fortnighId) => {
+  try {
+    const response = await api.get(`/fortnighs/${fortnighId}/days`);
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.error || 'Error al obtener los días de la quincena');
+    }
+    throw new Error('Error de red o servidor');
+  }
+};
+
 // Verificar si una quincena existe
 export const checkFortnighExists = async (name) => {
   try {

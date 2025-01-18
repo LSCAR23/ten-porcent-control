@@ -6,27 +6,29 @@ import React, { useEffect, useState } from 'react';
 import Modal from '../components/Modal';
 import Spinner from '../components/Spinner';
 import ToastMessage from '../components/ToastMessage';
-import { createFortnigh, checkFortnighExists, getLastFortnigh, getDayAttendanceList } from '@/services/fortNightService';
+import { createFortnigh,getAllFortnights,getDaysByFortnightId , checkFortnighExists, getLastFortnigh, getDayAttendanceList } from '@/services/fortNightService';
 import { getHoursReport } from '@/services/shiftService';
 export default function AdminPage() {
   const router = useRouter();
   const [userName, setUserName] = useState('');
+  const [fortnights, setFortnights] = useState([]);
+  const [selectedFortnight, setSelectedFortnight] = useState(null);
   const [days, setDays] = useState([]);
   const [selectedDay, setSelectedDay] = useState(null);
   const [breakfastList, setBreakfastList] = useState([]);
   const [dinnerList, setDinnerList] = useState([]);
+  const [loadingFortnights, setLoadingFortnights] = useState(false);
   const [loadingDays, setLoadingDays] = useState(false);
   const [loadingLists, setLoadingLists] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportData, setReportData] = useState([]);
   const [loadingReport, setLoadingReport] = useState(false);
-  const [fortnighId, setFortnighId] = useState(null);
-  const [toast, setToast] = useState(null); // Estado para mensajes de Toast
+  const [toast, setToast] = useState(null);
 
   const fetchReport = async () => {
     try {
       setLoadingReport(true);
-      const report = await getHoursReport(fortnighId);
+      const report = await getHoursReport(selectedFortnight);
       setReportData(report);
     } catch (error) {
       showToast('Error al obtener el reporte de horas', 'error');
@@ -45,7 +47,38 @@ export default function AdminPage() {
     setReportData([]);
   };
 
-  const fetchLastFortnigh = async () => {
+  const fetchAllFortnights = async () => {
+    try {
+      setLoadingFortnights(true);
+      const fortnightsData = await getAllFortnights();
+      setFortnights(fortnightsData);
+
+      // Seleccionar la quincena más reciente por defecto
+      if (fortnightsData.length > 0) {
+        const mostRecentFortnight = fortnightsData[0];
+        setSelectedFortnight(mostRecentFortnight.id);
+        await fetchDaysByFortnight(mostRecentFortnight.id);
+      }
+    } catch (err) {
+      showToast('Error al cargar las quincenas', 'error');
+    } finally {
+      setLoadingFortnights(false);
+    }
+  };
+
+  const fetchDaysByFortnight = async (fortnightId) => {
+    try {
+      setLoadingDays(true);
+      const daysData = await getDaysByFortnightId(fortnightId);
+      setDays(daysData);
+    } catch (err) {
+      showToast('Error al cargar los días de la quincena', 'error');
+    } finally {
+      setLoadingDays(false);
+    }
+  };
+
+ /* const fetchLastFortnigh = async () => {
     try {
       setLoadingDays(true);
       const fortnigh = await getLastFortnigh();
@@ -56,18 +89,23 @@ export default function AdminPage() {
     } finally {
       setLoadingDays(false);
     }
-  };
+  };*/
   useEffect(() => {
     const cookieValue = Cookies.get('userName');
-
     if (!cookieValue) {
       router.push('/'); // Redirigir al login si no hay cookie
     } else {
       setUserName(cookieValue);
     }
 
-    fetchLastFortnigh();
+    fetchAllFortnights();
   }, [router]);
+
+  const handleFortnightChange = async (e) => {
+    const selectedId = e.target.value;
+    setSelectedFortnight(selectedId);
+    await fetchDaysByFortnight(selectedId);
+  };
 
   const showToast = (message, type) => {
     setToast({ message, type });
@@ -104,7 +142,7 @@ export default function AdminPage() {
       }
 
       await createFortnigh({ name: quincenaName, startDate, endDate });
-      fetchLastFortnigh();
+      fetchAllFortnights();
       showToast('Nueva quincena iniciada exitosamente', 'success');
     } catch (err) {
       showToast('Error al iniciar la quincena', 'error');
@@ -138,6 +176,30 @@ export default function AdminPage() {
   return (
     <div className="max-w-2xl mx-auto p-6 bg-black rounded-lg border-violet-500 shadow-md shadow-violet-500 text-white text-center mt-12">
       <h1 className="text-3xl font-bold mb-6">Bienvenido {userName}</h1>
+
+       {/* Selector de Quincenas */}
+       <div className="mb-6">
+        <label htmlFor="fortnightSelector" className="block text-white font-bold mb-2">
+          Seleccionar Quincena
+        </label>
+        {loadingFortnights ? (
+          <Spinner label="Cargando quincenas..." />
+        ) : (
+          <select
+            id="fortnightSelector"
+            value={selectedFortnight || ''}
+            onChange={handleFortnightChange}
+            className="w-full p-2 bg-gray-800 text-white rounded-md"
+          >
+            {fortnights.map((fortnight) => (
+              <option key={fortnight.id} value={fortnight.id}>
+                {fortnight.name}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
       <button
         onClick={iniciarNuevaQuincena}
         className="w-full bg-violet-500 text-white py-2 rounded-md hover:bg-violet-600 transition duration-300"
@@ -147,7 +209,6 @@ export default function AdminPage() {
       <button
         onClick={handleReportClick}
         className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition duration-300 mt-4"
-        disabled={!fortnighId}
       >
         Reporte de Horas
       </button>
@@ -183,7 +244,7 @@ export default function AdminPage() {
       )}
 
       <div className="mt-10">
-        <h2 className="text-2xl font-bold">Días de la última quincena</h2>
+        <h2 className="text-2xl font-bold">Días de la quincena</h2>
         {loadingDays ? (
           <Spinner label="Cargando días..." />
         ) : days.length === 0 ? (
